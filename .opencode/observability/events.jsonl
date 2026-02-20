@@ -1,0 +1,2 @@
+{"ts":"2026-02-20T17:51:46.528Z","event":"tool.execute","tool":"swarm_dashboard","payload":{}}
+{"ts":"2026-02-20T17:51:53.716Z","event":"tool.execute","tool":"prune","payload":{"ids":["0"]}}
