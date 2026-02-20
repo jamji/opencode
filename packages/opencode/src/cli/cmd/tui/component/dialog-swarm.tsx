@@ -106,7 +106,7 @@ export function DialogSwarm() {
   }
 
   const getTabAttr = (idx: number) => {
-    return activeTab() === idx ? [TextAttributes.BOLD] : []
+    return activeTab() === idx ? TextAttributes.BOLD : 0
   }
   
   return (
