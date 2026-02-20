@@ -1,0 +1,9 @@
+[2026-02-20T17:50:12.585Z] Plugin initialized: 6 commands [
+  "learn",
+  "rmslop",
+  "spellcheck",
+  "issues",
+  "ai-deps",
+  "commit"
+]
+[2026-02-20T17:50:12.643Z] Registered /subtask command

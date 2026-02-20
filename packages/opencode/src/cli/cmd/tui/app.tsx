@@ -747,7 +747,7 @@ function App() {
               value: `plugin.panel.${panel.id}`,
               category: "Plugins",
               slash: panel.command ? { name: panel.command } : undefined,
-              keybind: panel.keybind,
+              // keybind omitted — plugins can't register arbitrary keybinds
               onSelect: () => {
                 dialog.replace(() => <PluginPanelDialog panel={panel} />)
               },
