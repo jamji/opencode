@@ -124,6 +124,22 @@ export namespace Plugin {
     return state().then((x) => x.hooks)
   }
 
+  export async function panels() {
+    const output = {
+      panels: [] as Array<{
+        id: string
+        title: string
+        command?: string
+        keybind?: string
+        statusBar?: () => Promise<string>
+        content: () => Promise<string>
+        pollInterval?: number
+      }>,
+    }
+    await trigger("tui.panel", {}, output)
+    return output.panels
+  }
+
   export async function init() {
     const hooks = await state().then((x) => x.hooks)
     const config = await Config.get()

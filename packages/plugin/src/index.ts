@@ -231,4 +231,29 @@ export interface Hooks {
    * Modify tool definitions (description and parameters) sent to LLM
    */
   "tool.definition"?: (input: { toolID: string }, output: { description: string; parameters: any }) => Promise<void>
+  /**
+   * Register TUI panels that can be rendered in the terminal UI.
+   * Panels can be displayed as status bar items, dialogs, or slash commands.
+   */
+  "tui.panel"?: (
+    input: {},
+    output: {
+      panels: Array<{
+        /** Unique panel identifier */
+        id: string
+        /** Display title */
+        title: string
+        /** Slash command name to open this panel (e.g. "swarm" → /swarm) */
+        command?: string
+        /** Keyboard shortcut (e.g. "ctrl+shift+s") */
+        keybind?: string
+        /** Status bar text (short, shown always when non-empty) */
+        statusBar?: () => Promise<string>
+        /** Full panel content (shown in dialog view) */
+        content: () => Promise<string>
+        /** Poll interval in ms for live updates (default: no polling) */
+        pollInterval?: number
+      }>
+    },
+  ) => Promise<void>
 }

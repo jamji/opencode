@@ -38,6 +38,7 @@ import { ArgsProvider, useArgs, type Args } from "./context/args"
 import open from "open"
 import { writeHeapSnapshot } from "v8"
 import { PromptRefProvider, usePromptRef } from "./context/prompt"
+import { Plugin } from "@/plugin"
 
 async function getTerminalBackgroundColor(): Promise<"dark" | "light"> {
   // can't set raw mode if not a TTY
@@ -193,6 +194,85 @@ export function tui(input: {
       },
     )
   })
+}
+
+// --- Plugin Panel Support ---
+type PanelDescriptor = {
+  id: string
+  title: string
+  command?: string
+  keybind?: string
+  statusBar?: () => Promise<string>
+  content: () => Promise<string>
+  pollInterval?: number
+}
+
+function PluginPanelDialog(props: { panel: PanelDescriptor }) {
+  const { theme } = useTheme()
+  const dialog = useDialog()
+  const [content, setContent] = createSignal("")
+
+  const refresh = async () => {
+    try {
+      const text = await props.panel.content()
+      setContent(text)
+    } catch (e) {
+      setContent(`Error loading panel: ${e}`)
+    }
+  }
+
+  onMount(() => {
+    refresh()
+    if (props.panel.pollInterval) {
+      const interval = setInterval(refresh, props.panel.pollInterval)
+      return () => clearInterval(interval)
+    }
+  })
+
+  return (
+    <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
+      <box flexDirection="row" justifyContent="space-between">
+        <text fg={theme.text} attributes={TextAttributes.BOLD}>{props.panel.title}</text>
+        <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>esc</text>
+      </box>
+      <text fg={theme.text}>{content()}</text>
+    </box>
+  )
+}
+
+function PluginStatusBar() {
+  const { theme } = useTheme()
+  const [bars, setBars] = createSignal<Array<{ id: string; text: string }>>([])
+
+  const refresh = async () => {
+    try {
+      const panels = await Plugin.panels()
+      const results: Array<{ id: string; text: string }> = []
+      for (const panel of panels) {
+        if (panel.statusBar) {
+          const text = await panel.statusBar()
+          if (text) results.push({ id: panel.id, text })
+        }
+      }
+      setBars(results)
+    } catch {}
+  }
+
+  onMount(() => {
+    refresh()
+    const interval = setInterval(refresh, 3000)
+    return () => clearInterval(interval)
+  })
+
+  return (
+    <Show when={bars().length > 0}>
+      <box flexDirection="row" gap={2} paddingLeft={1}>
+        {bars().map((bar) => (
+          <text fg={theme.textMuted}>{bar.text}</text>
+        ))}
+      </box>
+    </Show>
+  )
 }
 
 function App() {
@@ -654,6 +734,31 @@ function App() {
     },
   ])
 
+  // Register plugin panel commands
+  onMount(async () => {
+    try {
+      const panels = await Plugin.panels()
+      if (panels.length > 0) {
+        command.register(() =>
+          panels
+            .filter((p) => p.command)
+            .map((panel) => ({
+              title: panel.title,
+              value: `plugin.panel.${panel.id}`,
+              category: "Plugins",
+              slash: panel.command ? { name: panel.command } : undefined,
+              keybind: panel.keybind,
+              onSelect: () => {
+                dialog.replace(() => <PluginPanelDialog panel={panel} />)
+              },
+            })),
+        )
+      }
+    } catch (_e) {
+      // Plugin panels are optional
+    }
+  })
+
   createEffect(() => {
     const currentModel = local.model.current()
     if (!currentModel) return
@@ -744,14 +849,17 @@ function App() {
       }}
       onMouseUp={Flag.OPENCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? undefined : () => Selection.copy(renderer, toast)}
     >
-      <Switch>
-        <Match when={route.data.type === "home"}>
-          <Home />
-        </Match>
-        <Match when={route.data.type === "session"}>
-          <Session />
-        </Match>
-      </Switch>
+      <box flexGrow={1}>
+        <Switch>
+          <Match when={route.data.type === "home"}>
+            <Home />
+          </Match>
+          <Match when={route.data.type === "session"}>
+            <Session />
+          </Match>
+        </Switch>
+      </box>
+      <PluginStatusBar />
     </box>
   )
 }
